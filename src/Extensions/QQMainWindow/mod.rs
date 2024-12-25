@@ -1,7 +1,7 @@
 use std::os::raw::{c_int, c_uint, c_void};
 use std::ptr;
 use std::mem;
-use crate::Extensions::1_QQApplication::{QQApplication, MSG, POINT};
+use crate::Extensions::QQApplication::{QQApplication, MSG, POINT};
 
 type WPARAM = usize;
 type LPARAM = isize;
@@ -24,8 +24,8 @@ struct WNDCLASSEXW {
     cb_cls_extra: c_int,
     cb_wnd_extra: c_int,
     h_instance: *mut c_void,
-    h_icon: * mut cVOID,
-    h_cursor: * mut c_void,
+    h_icon: *mut c_void,
+    h_cursor: *mut c_void,
     hbr_background: *mut c_void,
     lpsz_menu_name: *const u16,
     lpsz_class_name: *const u16,
@@ -52,7 +52,7 @@ struct RECT {
 
 type HWND = *mut c_void;
 type HINSTANCE = *mut c_void;
-type HBRUSH = * mut c_void;
+type HBRUSH = *mut c_void;
 
 #[link(name = "user32")]
 extern "system" {
@@ -83,11 +83,11 @@ extern "system" {
     fn GetMessageW(
         lpMsg: *mut MSG,
         hWnd: HWND,
-        wMsgFilter_min: u32,
-        wMsgFilter max: u32,
+        wMsgFilterMin: u32,
+        wMsgFilterMax: u32,
     ) -> i32;
 
-    fn Post_quit_message(nExitCode: c_int) -> ();
+    fn PostQuitMessage(nExitCode: c_int) -> ();
 
     fn RegisterClassExW(lpwcx: *const WNDCLASSEXW) -> u16;
 
@@ -97,7 +97,7 @@ extern "system" {
 
     fn BeginPaint(hWnd: HWND, lpPaint: *mut PAINTSTRUCT) -> *mut c_void;
 
-    fn EndPaint(hWnd: HWND, lpPaint: *const PAINT STRUCT) -> i32;
+    fn EndPaint(hWnd: HWND, lpPaint: *const PAINTSTRUCT) -> i32;
 
     fn SetWindowPos(
         hWnd: HWND,
@@ -111,7 +111,7 @@ extern "system" {
 
     fn GetModuleHandleW(lpModuleName: *const u16) -> HINSTANCE;
 
-    fn GetSystem metrics(nIndex: c_int) -> c_int;
+    fn GetSystemMetrics(nIndex: c_int) -> c_int;
 }
 
 #[link(name = "gdi32")]
@@ -136,7 +136,7 @@ pub unsafe extern "system" fn window_proc(
             0
         }
         WM_PAINT => {
-            let mut ps: PAINT struct = mem::zeroed();
+            let mut ps: PAINTSTRUCT = mem::zeroed();
             let hdc = BeginPaint(hwnd, &mut ps);
             let brush = CreateSolidBrush(RGB(255, 255, 255));
             FillRect(hdc, &ps.rc_paint, brush);
@@ -150,7 +150,7 @@ pub unsafe extern "system" fn window_proc(
 
 unsafe fn center_window(hwnd: HWND, width: i32, height: i32) {
     let screen_width = GetSystemMetrics(SM_CXSCREEN);
-    let screen_height = Get_system_metrics(SM_CYSCREEN);
+    let screen_height = GetSystemMetrics(SM_CYSCREEN);
     let x = (screen_width - width) / 2;
     let y = (screen_height - height) / 2;
     SetWindowPos(hwnd, ptr::null_mut(), x, y, width, height, 0);
@@ -168,8 +168,8 @@ impl QQMainWindow {
 
             let h_instance = app.get_h_instance();
 
-            let wc = WNDCLASsexw {
-                cb_size: mem::size_of::<WNDclASSEXW>() as u32,
+            let wc = WNDCLASSEXW {
+                cb_size: mem::size_of::<WNDCLASSEXW>() as u32,
                 style: 0,
                 lpfn_wnd_proc: window_proc,
                 cb_cls_extra: 0,
@@ -177,7 +177,8 @@ impl QQMainWindow {
                 h_instance,
                 h_icon: ptr::null_mut(),
                 h_cursor: ptr::null_mut(),
-                hbr_background: Create_solid_brush(RGB(255, 255, 255)) as *mut c_void                lpsz_menu_name: ptr::null(),
+                hbr_background: CreateSolidBrush(RGB(255, 255, 255)) as *mut c_void,
+                lpsz_menu_name: ptr::null(),
                 lpsz_class_name: class_name.as_ptr(),
                 h_icon_sm: ptr::null_mut(),
             };
@@ -190,12 +191,12 @@ impl QQMainWindow {
                 0,
                 class_name.as_ptr(),
                 window_title.as_ptr(),
-                WS_overlappedwindow,
+                WS_OVERLAPPEDWINDOW,
                 0,
                 0,
                 width,
                 height,
-                ptr::null_mut()),
+                ptr::null_mut(),
                 ptr::null_mut(),
                 h_instance,
                 ptr::null_mut(),
@@ -206,7 +207,7 @@ impl QQMainWindow {
             }
 
             center_window(hwnd, width, height);
-            ShowWindow(hwnd, 5); // SW_SHOW
+            ShowWindow(hwnd, 5);
 
             QQMainWindow { hwnd }
         }
